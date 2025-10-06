@@ -1,10 +1,10 @@
 # Template dataset configuration for YOLOv8 training
 # ปรับพาธ train/val/test ให้ตรงกับไฟล์ที่เตรียมไว้
 
-path: ../../..
-train: data/processed/detection/ai_challenger_yolo/train/images
-val: data/processed/detection/ai_challenger_yolo/val/images
-test: data/processed/detection/ai_challenger_yolo/test/images
+path: D:/AI_FInal_Project/data/processed/detection/ai_challenger_yolo
+train: train/images
+val: val/images
+test: test/images
 
 # จำนวนคลาสและรายชื่อคลาส (ตัวอย่าง)
 nc: 10
