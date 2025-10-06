@@ -1,0 +1,21 @@
+# Template dataset configuration for YOLOv8 training
+# ปรับพาธ train/val/test ให้ตรงกับไฟล์ที่เตรียมไว้
+
+path: ../../..
+train: data/processed/detection/ai_challenger_yolo/train/images
+val: data/processed/detection/ai_challenger_yolo/val/images
+test: data/processed/detection/ai_challenger_yolo/test/images
+
+# จำนวนคลาสและรายชื่อคลาส (ตัวอย่าง)
+nc: 10
+names:
+  0: aphid
+  1: armyworm
+  2: beetle
+  3: borer
+  4: bug
+  5: caterpillar
+  6: fly
+  7: hopper
+  8: mite
+  9: weevil

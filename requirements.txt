@@ -1,0 +1,25 @@
+# Core libraries
+ultralytics>=8.2.0
+torch>=2.2.0
+torchvision>=0.17.0
+torchaudio>=2.2.0
+pandas>=2.1.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+plotly>=5.18.0
+streamlit>=1.32.0
+typer>=0.12.0
+requests>=2.31.0
+pyyaml>=6.0.0
+rich>=13.7.0
+tqdm>=4.66.0
+opencv-python>=4.9.0
+shap>=0.44.0
+pillow>=10.2.0
+
+# Optional forecasting stack
+pytorch-lightning>=2.2.0
+pytorch-forecasting>=1.0.0
+pytorch-tabnet>=4.1.0

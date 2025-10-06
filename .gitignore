@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.pyd
+*.egg
+*.egg-info/
+*.log
+
+# Environment
+.env
+.env.*
+.venv/
+venv/
+
+# Build & packaging
+build/
+dist/
+.eggs/
+.mypy_cache/
+.pytest_cache/
+.pytype/
+.coverage
+htmlcov/
+
+# Jupyter notebooks
+.ipynb_checkpoints/
+.notebooks/
+
+# Data artifacts
+data/raw/
+data/interim/
+results/
+models/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/
