@@ -43,7 +43,7 @@ def load_and_prepare(
     if fill_method:
         for _, group_df in df.groupby(group_cols or [config.target_column]):
             if fill_method == "ffill":
-                df.loc[group_df.index] = group_df.fillna(method="ffill").fillna(0)
+                df.loc[group_df.index] = group_df.ffill().fillna(0)
             elif fill_method == "zero":
                 df.loc[group_df.index] = group_df.fillna(0)
             else:
