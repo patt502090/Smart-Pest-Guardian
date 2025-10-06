@@ -12,7 +12,7 @@ from ultralytics import YOLO
 console = Console()
 app = typer.Typer(help="เทรนโมเดลตรวจจับศัตรูพืชด้วย YOLOv8")
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_DATASET = PROJECT_ROOT / "data" / "processed" / "detection" / "ai_challenger_yolo" / "dataset.yaml"
+DEFAULT_DATASET = PROJECT_ROOT / "data" / "processed" / "detection" / "pests_2xlvx_yolo" / "dataset.yaml"
 DEFAULT_OUTPUT = PROJECT_ROOT / "models" / "detector"
 
 

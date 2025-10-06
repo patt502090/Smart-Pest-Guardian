@@ -1,8 +1,15 @@
 """Helper CLI to download project datasets."""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import typer
 from rich.console import Console
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
 
 from src.data import download as download_module
 
@@ -38,6 +45,15 @@ def nasa(lat: float, lon: float, start: str, end: str, parameters: str = "T2M,PR
         end=end,
         parameters=parameters,
     )
+
+
+@app.command()
+def pests_2xlvx(
+    overwrite: bool = typer.Option(False, help="ดาวน์โหลดซ้ำและเขียนทับไฟล์เดิม"),
+    skip_convert: bool = typer.Option(False, help="ข้ามขั้นตอนแปลงเป็น YOLO"),
+) -> None:
+    """ดาวน์โหลดชุดข้อมูลตรวจจับศัตรูพืช Pests-2XLVX"""
+    download_module.download_pests_2xlvx(overwrite=overwrite, skip_convert=skip_convert)
 
 
 if __name__ == "__main__":

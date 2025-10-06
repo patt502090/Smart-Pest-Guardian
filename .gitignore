@@ -31,6 +31,7 @@ htmlcov/
 # Data artifacts
 data/raw/
 data/interim/
+data/processed/detection/pests_2xlvx_yolo/
 results/
 models/
 

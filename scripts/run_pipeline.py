@@ -45,7 +45,7 @@ def download_climate(
 @app.command()
 def train_detector(
     data_yaml: Path = typer.Option(
-        PROJECT_ROOT / "data" / "processed" / "detection" / "ai_challenger_yolo" / "dataset.yaml",
+        PROJECT_ROOT / "data" / "processed" / "detection" / "pests_2xlvx_yolo" / "dataset.yaml",
         help="ไฟล์ dataset.yaml",
     ),
     model: str = typer.Option("yolov8n.pt", help="ไฟล์ weights ตั้งต้น"),
