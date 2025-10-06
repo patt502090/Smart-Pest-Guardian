@@ -112,6 +112,18 @@ def aggregate_detection_to_timeseries(
     """สรุปผลตรวจจับเป็น time series รายวันเพื่อใช้พยากรณ์"""
     console.rule("สรุปผลตรวจจับเป็น Time Series")
     _ensure_dirs()
+
+    def _unwrap(value):
+        if isinstance(value, typer.models.OptionInfo):
+            return value.default
+        return value
+
+    datetime_column = _unwrap(datetime_column)
+    location_column = _unwrap(location_column)
+    pest_column = _unwrap(pest_column)
+    score_column = _unwrap(score_column)
+    min_confidence = _unwrap(min_confidence)
+
     df = pd.read_csv(detections_csv, parse_dates=[datetime_column])
     df = df.loc[df[score_column] >= min_confidence]
     df["date"] = df[datetime_column].dt.date
@@ -126,17 +138,55 @@ def aggregate_detection_to_timeseries(
         .reset_index()
     )
 
-    pivot = summary.pivot_table(
+    pivot_counts = summary.pivot_table(
         index=["date", location_column],
         columns=pest_column,
         values="detections_count",
         fill_value=0,
     )
-    pivot.columns = [f"count_{col}" for col in pivot.columns]
-    pivot = pivot.reset_index()
+    def _slugify(value: str) -> str:
+        import re
+
+        slug = re.sub(r"[^0-9a-zA-Z]+", "_", str(value).strip().lower())
+        return slug.strip("_")
+
+    pivot_counts.columns = [f"count_{_slugify(col)}" for col in pivot_counts.columns]
+
+    overall_summary = (
+        df.groupby(["date", location_column])
+        .agg(
+            count_total=(score_column, "count"),
+            mean_confidence=(score_column, "mean"),
+        )
+        .reset_index()
+    )
+
+    merged = overall_summary.merge(
+        pivot_counts.reset_index(),
+        on=["date", location_column],
+        how="left",
+    )
+    merged.fillna(0, inplace=True)
+
+    count_columns = sorted({col for col in merged.columns if col.startswith("count_")})
+    merged["date"] = pd.to_datetime(merged["date"])
+    filled_frames = []
+    for loc, group in merged.groupby(location_column):
+        group = group.sort_values("date")
+        full_range = pd.date_range(group["date"].min(), group["date"].max(), freq="D")
+        reindexed = group.set_index("date").reindex(full_range)
+        reindexed[count_columns] = reindexed[count_columns].fillna(0)
+        reindexed["mean_confidence"] = reindexed["mean_confidence"].fillna(0.0)
+        reindexed[location_column] = loc
+        reindexed.reset_index(inplace=True)
+        reindexed.rename(columns={"index": "date"}, inplace=True)
+        filled_frames.append(reindexed)
+
+    merged = pd.concat(filled_frames, ignore_index=True)
+    merged["date"] = merged["date"].dt.date
 
     output_csv.parent.mkdir(parents=True, exist_ok=True)
-    pivot.to_csv(output_csv, index=False)
+    merged.to_csv(output_csv, index=False)
     console.log(f"บันทึก time series ที่ {output_csv}")
 
 

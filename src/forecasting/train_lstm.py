@@ -103,7 +103,7 @@ def train(
     csv_path: Path = typer.Option(DEFAULT_TIMESERIES, help="ไฟล์ time series"),
     target: str = typer.Option("count_total", help="คอลัมน์ตัวแปรเป้าหมาย"),
     group_columns: str = typer.Option("location_id", help="คอลัมน์กลุ่ม (คั่นด้วยจุลภาค)"),
-    feature_columns: str = typer.Option("mean_confidence,temp_c,humidity", help="คอลัมน์คุณลักษณะ"),
+    feature_columns: str = typer.Option("mean_confidence,count_total", help="คอลัมน์คุณลักษณะ"),
     input_window: int = typer.Option(14, help="จำนวนวันย้อนหลังที่ใช้เป็น input"),
     horizon: int = typer.Option(7, help="จำนวนวันล่วงหน้าที่พยากรณ์"),
     epochs: int = typer.Option(50, help="จำนวน epoch"),
