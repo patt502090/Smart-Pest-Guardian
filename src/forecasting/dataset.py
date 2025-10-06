@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -78,6 +78,7 @@ class SequenceDataset:
         self.target_column = config.target_column
         self.input_window = config.input_window
         self.forecast_horizon = config.forecast_horizon
+        self.group_scalers: Dict[Tuple, Dict[str, np.ndarray]] = {}
 
         data, targets = [], []
         groups = []
@@ -91,6 +92,8 @@ class SequenceDataset:
                 f_mean = scaler.get("mean")
                 f_std = scaler.get("std")
             norm_features = (features - f_mean) / f_std
+            norm_key = self._normalize_group_key(group_key)
+            self.group_scalers[norm_key] = {"mean": f_mean.astype(np.float32), "std": f_std.astype(np.float32)}
             for idx in range(len(group_df) - self.input_window - self.forecast_horizon + 1):
                 window = norm_features[idx : idx + self.input_window, : len(self.feature_columns)]
                 target = norm_features[
@@ -111,3 +114,16 @@ class SequenceDataset:
 
     def __getitem__(self, index: int):
         return self.data[index], self.targets[index], self.groups[index]
+
+    def _normalize_group_key(self, group_key):
+        if not self.group_columns:
+            return ("__global__",)
+        if len(self.group_columns) == 1:
+            return (group_key,)
+        if isinstance(group_key, tuple):
+            return group_key
+        return (group_key,)
+
+    def get_scaler(self, group_key):
+        norm_key = self._normalize_group_key(group_key)
+        return self.group_scalers[norm_key]
