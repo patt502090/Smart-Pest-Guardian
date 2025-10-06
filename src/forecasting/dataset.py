@@ -119,6 +119,8 @@ class SequenceDataset:
         if not self.group_columns:
             return ("__global__",)
         if len(self.group_columns) == 1:
+            if isinstance(group_key, tuple):
+                return group_key
             return (group_key,)
         if isinstance(group_key, tuple):
             return group_key

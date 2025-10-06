@@ -39,7 +39,8 @@ def build_group_label(group_columns: List[str], group_key) -> str:
     if not group_columns:
         return "overall"
     if len(group_columns) == 1:
-        return f"{group_columns[0]}={group_key}"
+        value = group_key[0] if isinstance(group_key, tuple) else group_key
+        return f"{group_columns[0]}={value}"
     key_tuple = group_key if isinstance(group_key, tuple) else (group_key,)
     return ", ".join(f"{col}={val}" for col, val in zip(group_columns, key_tuple))
 
@@ -48,7 +49,8 @@ def select_group_frame(df: pd.DataFrame, group_columns: List[str], group_key):
     if not group_columns:
         return df
     if len(group_columns) == 1:
-        return df[df[group_columns[0]] == group_key]
+        value = group_key[0] if isinstance(group_key, tuple) else group_key
+        return df[df[group_columns[0]] == value]
     key_tuple = group_key if isinstance(group_key, tuple) else (group_key,)
     mask = pd.Series(True, index=df.index)
     for column, value in zip(group_columns, key_tuple):
