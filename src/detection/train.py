@@ -6,6 +6,7 @@ from typing import Optional
 
 import typer
 from rich.console import Console
+import torch
 from ultralytics import YOLO
 
 console = Console()
@@ -28,7 +29,7 @@ def train(
     epochs: int = typer.Option(100, help="จำนวนรอบการเทรน"),
     batch: int = typer.Option(32, help="ขนาด batch ต่อครั้ง"),
     imgsz: int = typer.Option(640, help="ขนาดรูปด้านยาว"),
-    device: str = typer.Option("auto", help="เลือก GPU/CPU"),
+    device: str = typer.Option("auto", help="เลือก GPU/CPU (auto = เลือกเอง)"),
     project_dir: Path = typer.Option(DEFAULT_OUTPUT, help="โฟลเดอร์บันทึกผลลัพธ์"),
     name: str = typer.Option("yolov8-pest", help="ชื่อรอบการทดลอง"),
     patience: int = typer.Option(50, help="จำนวน epoch รอ improvement ก่อน early stop"),
@@ -40,8 +41,15 @@ def train(
         raise typer.BadParameter(f"ไม่พบไฟล์ dataset.yaml ที่ {data_config}")
     project_dir.mkdir(parents=True, exist_ok=True)
 
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        console.log(f"เลือกอุปกรณ์ที่ใช้เทรน: {device}")
+
     console.log(f"โหลดโมเดลตั้งต้น {model}")
     yolo_model = YOLO(model)
+
+    if seed is None:
+        seed = 0
 
     console.log("เริ่มการเทรนแบบเต็ม")
     results = yolo_model.train(
@@ -52,10 +60,10 @@ def train(
         device=device,
         project=str(project_dir),
         name=name,
-    patience=patience,
-    save=True,
-    exist_ok=True,
-    seed=seed,
+        patience=patience,
+        save=True,
+        exist_ok=True,
+        seed=seed,
     )
     console.log("จบการเทรน")
     if results is not None:

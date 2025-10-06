@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import typer
@@ -10,7 +11,7 @@ from rich.console import Console
 console = Console()
 app = typer.Typer(help="รัน workflow หลักแบบครบวงจร")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-PYTHON = "python"
+PYTHON = sys.executable
 
 
 def _run(command: list[str]) -> None:
