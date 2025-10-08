@@ -103,7 +103,12 @@ def build_augmentation_pipeline() -> A.Compose:
             A.Blur(blur_limit=3, p=0.2),
             A.RandomScale(scale_limit=0.2, p=0.3),
         ],
-        bbox_params=A.BboxParams(format="yolo", label_fields=["class_labels"], min_visibility=0.2),
+        bbox_params=A.BboxParams(
+            format="yolo",
+            label_fields=["class_labels"],
+            min_visibility=0.2,
+            clip=True,
+        ),
     )
 
 
@@ -147,12 +152,14 @@ def augment_class(
     images_dir = target_dir / "train" / "images"
     current_counts = compute_class_counts(target_dir / "train", len(class_names))
     start_count = current_counts[class_id]
-    needed = max(0, target_count - start_count)
-    if needed == 0:
+    target_additional = max(0, target_count - start_count)
+    if target_additional == 0:
         console.log(f"คลาส {class_names[class_id]} มี {start_count} ตัวอย่าง เพียงพอแล้ว")
         return 0
 
-    console.log(f"เพิ่มข้อมูลคลาส {class_names[class_id]}: {start_count} -> {target_count} (ต้องเพิ่ม {needed})")
+    console.log(
+        f"เพิ่มข้อมูลคลาส {class_names[class_id]}: {start_count} -> {target_count} (ต้องเพิ่ม {target_additional})"
+    )
     rng = random.Random(20251009 + class_id)
     generated = 0
     sample_pool = samples or []
@@ -160,7 +167,9 @@ def augment_class(
         console.log(f"[yellow]ไม่มีตัวอย่างต้นฉบับของคลาส {class_names[class_id]} ให้ augment[/yellow]")
         return 0
 
-    while generated < needed:
+    current_total = start_count
+
+    while current_total < target_count:
         sample = rng.choice(sample_pool)
         image = cv2.imread(str(sample.image_path))
         if image is None:
@@ -175,7 +184,7 @@ def augment_class(
         while attempts < 10 and not success:
             transformed = pipeline(image=image, bboxes=boxes, class_labels=classes)
             new_boxes = transformed["bboxes"]
-            new_classes = transformed["class_labels"]
+            new_classes = [int(round(cls)) for cls in transformed["class_labels"]]
             if not new_boxes:
                 attempts += 1
                 continue
@@ -190,9 +199,14 @@ def augment_class(
             cv2.imwrite(str(out_image_path), transformed["image"])
             save_yolo_label(out_label_path, new_boxes, new_classes)
             generated += 1
+            added_targets = sum(1 for cls in new_classes if cls == class_id)
+            current_total += added_targets
             success = True
-            if generated % 10 == 0 or generated == needed:
-                console.log(f"  -> สร้างรูปเพิ่มแล้ว {generated}/{needed}")
+            progress = min(target_additional, max(0, current_total - start_count))
+            if generated % 10 == 0 or current_total >= target_count:
+                console.log(
+                    f"  -> สร้างรูปเพิ่มแล้ว {progress}/{target_additional} (จำนวนรวม {current_total})"
+                )
         if not success:
             console.log(f"[yellow]สร้าง augmentation ไม่สำเร็จหลังพยายามหลายครั้งสำหรับ {sample.image_path}[/yellow]")
             break
