@@ -75,8 +75,12 @@ def plot_training_curves(report_dir: Path, run_name: str, history_df: pd.DataFra
     axes[0].grid(True, alpha=0.3)
 
     axes[1].plot(history_df["epoch"], history_df["val_rmse"], label="val_rmse", color="orange")
+    if "val_mae" in history_df.columns:
+        axes[1].plot(history_df["epoch"], history_df["val_mae"], label="val_mae", color="green")
+    if "val_mape" in history_df.columns:
+        axes[1].plot(history_df["epoch"], history_df["val_mape"], label="val_mape", color="red")
     axes[1].set_xlabel("Epoch")
-    axes[1].set_ylabel("RMSE")
+    axes[1].set_ylabel("Error")
     axes[1].legend()
     axes[1].grid(True, alpha=0.3)
 
@@ -213,20 +217,52 @@ def train_epoch(model, dataloader, criterion, optimizer, device: torch.device) -
     return epoch_loss / len(dataloader.dataset)
 
 
-def evaluate(model, dataloader, criterion, device: torch.device) -> Tuple[float, float]:
+def evaluate(
+    model,
+    dataloader,
+    criterion,
+    device: torch.device,
+    dataset: SequenceDataset,
+) -> Tuple[float, float, float, float]:
     model.eval()
     epoch_loss = 0.0
     mse_sum = 0.0
+    mae_sum = 0.0
+    mape_sum = 0.0
+    sample_count = 0
+    mape_count = 0
     with torch.no_grad():
-        for features, targets, _ in dataloader:
+        for features, targets, metas in dataloader:
             features = features.to(device)
             targets = targets.to(device)
             preds = model(features)
             loss = criterion(preds, targets)
             epoch_loss += loss.item() * features.size(0)
             mse_sum += torch.mean((preds - targets) ** 2).item() * features.size(0)
+
+            preds_np = preds.cpu().numpy()
+            targets_np = targets.cpu().numpy()
+            for idx, meta in enumerate(metas):
+                group_key, _ = meta
+                try:
+                    scaler = dataset.get_scaler(group_key)
+                except KeyError:
+                    continue
+                target_mean = scaler["mean"][-1]
+                target_std = scaler["std"][-1]
+                preds_denorm = preds_np[idx] * target_std + target_mean
+                targets_denorm = targets_np[idx] * target_std + target_mean
+                diff = np.abs(preds_denorm - targets_denorm)
+                mae_sum += np.mean(diff)
+                valid_mask = np.abs(targets_denorm) >= 1e-3
+                if np.any(valid_mask):
+                    mape_sum += np.mean(diff[valid_mask] / np.abs(targets_denorm[valid_mask]))
+                    mape_count += 1
+                sample_count += 1
     rmse = np.sqrt(mse_sum / len(dataloader.dataset))
-    return epoch_loss / len(dataloader.dataset), rmse
+    mae = mae_sum / sample_count if sample_count else float("nan")
+    mape = (mape_sum / mape_count if mape_count else float("nan")) * 100
+    return epoch_loss / len(dataloader.dataset), rmse, mae, mape
 
 
 def collate_batch(batch):
@@ -281,14 +317,16 @@ def train(
     history_records: List[Dict[str, float]] = []
 
     best_rmse = float("inf")
+    best_metrics: Dict[str, float] = {}
     output_dir.mkdir(parents=True, exist_ok=True)
     weights_path = output_dir / "lstm_best.pt"
 
     for epoch in range(1, epochs + 1):
         train_loss = train_epoch(model, train_loader, criterion, optimizer, device_obj)
-        val_loss, val_rmse = evaluate(model, val_loader, criterion, device_obj)
+        val_loss, val_rmse, val_mae, val_mape = evaluate(model, val_loader, criterion, device_obj, dataset)
         console.log(
-            f"Epoch {epoch:03d} | train_loss={train_loss:.4f} | val_loss={val_loss:.4f} | val_RMSE={val_rmse:.4f}"
+            f"Epoch {epoch:03d} | train_loss={train_loss:.4f} | val_loss={val_loss:.4f} | val_RMSE={val_rmse:.4f} | "
+            f"val_MAE={val_mae:.4f} | val_MAPE={val_mape:.2f}%"
         )
         history_records.append(
             {
@@ -296,10 +334,17 @@ def train(
                 "train_loss": float(train_loss),
                 "val_loss": float(val_loss),
                 "val_rmse": float(val_rmse),
+                "val_mae": float(val_mae),
+                "val_mape": float(val_mape),
             }
         )
         if val_rmse < best_rmse:
             best_rmse = val_rmse
+            best_metrics = {
+                "rmse": float(val_rmse),
+                "mae": float(val_mae),
+                "mape": float(val_mape),
+            }
             torch.save(
                 {
                     "model_state": model.state_dict(),
@@ -317,6 +362,7 @@ def train(
                     "history": history_records.copy(),
                     "best_epoch": epoch,
                     "best_rmse": float(best_rmse),
+                    "best_metrics": best_metrics,
                     "scalers": serialize_scalers(dataset),
                     "run_name": run_name,
                     "timestamp": run_id,
@@ -338,7 +384,28 @@ def train(
     console.log(f"บันทึกกราฟ loss/RMSE: {history_plot_path}")
     for path in forecast_paths:
         console.log(f"[green]สร้างกราฟ forecast: {path}[/green]")
-    console.log(f"การเทรนเสร็จสมบูรณ์ (best RMSE={best_rmse:.4f})")
+    if best_metrics:
+        console.log(
+            "การเทรนเสร็จสมบูรณ์ (best metrics: "
+            f"RMSE={best_metrics['rmse']:.4f}, MAE={best_metrics['mae']:.4f}, MAPE={best_metrics['mape']:.2f}%)"
+        )
+    else:
+        console.log(f"การเทรนเสร็จสมบูรณ์ (best RMSE={best_rmse:.4f})")
+
+    summary = {
+        "run_name": run_name,
+        "history_csv": artifacts["csv"],
+        "history_json": artifacts["json"],
+        "history_plot": history_plot_path,
+        "forecast_plots": forecast_paths,
+        "best_metrics": best_metrics or {
+            "rmse": float(best_rmse),
+            "mae": float("nan"),
+            "mape": float("nan"),
+        },
+        "weights_path": weights_path,
+    }
+    return summary
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3 @@
+group,baseline,rmse,mae,mape,input_window,horizon
+"location_id=('site-demo',)",naive_last,0.9007448554039001,0.5103598833084106,80.64971923828125,14,7
+"location_id=('site-demo',)",moving_average,0.6732196807861328,0.4805265963077545,64.75483703613281,14,7
