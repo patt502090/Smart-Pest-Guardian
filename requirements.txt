@@ -18,6 +18,7 @@ tqdm>=4.66.0
 opencv-python>=4.9.0
 shap>=0.44.0
 pillow>=10.2.0
+albumentations>=1.4.0
 
 # Optional forecasting stack
 pytorch-lightning>=2.2.0
