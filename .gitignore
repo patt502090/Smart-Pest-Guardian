@@ -13,7 +13,9 @@ __pycache__/
 .env.*
 .venv/
 venv/
-
+.venv311/
+venv311/
+.venv311
 # Build & packaging
 build/
 dist/
@@ -45,3 +47,4 @@ Thumbs.db
 
 # Streamlit
 .streamlit/
+

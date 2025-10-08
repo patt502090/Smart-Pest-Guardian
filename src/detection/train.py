@@ -42,6 +42,7 @@ def train(
     project_dir: Path = typer.Option(DEFAULT_OUTPUT, help="โฟลเดอร์บันทึกผลลัพธ์"),
     name: str = typer.Option("yolov8-pest", help="ชื่อรอบการทดลอง"),
     patience: int = typer.Option(50, help="จำนวน epoch รอ improvement ก่อน early stop"),
+    fraction: float = typer.Option(1.0, min=0.05, max=1.0, help="สัดส่วนของข้อมูล train/val ที่จะใช้ (0-1)"),
     seed: Optional[int] = typer.Option(None, help="ค่า seed สำหรับ reproducibility"),
     metrics_dir: Path = typer.Option(
         DEFAULT_METRICS_DIR, help="โฟลเดอร์บันทึกผลลัพธ์ metrics และ summary"
@@ -74,6 +75,7 @@ def train(
         project=str(project_dir),
         name=name,
         patience=patience,
+        fraction=fraction,
         save=True,
         exist_ok=True,
         seed=seed,
