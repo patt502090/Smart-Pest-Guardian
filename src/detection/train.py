@@ -42,6 +42,10 @@ def train(
     project_dir: Path = typer.Option(DEFAULT_OUTPUT, help="โฟลเดอร์บันทึกผลลัพธ์"),
     name: str = typer.Option("yolov8-pest", help="ชื่อรอบการทดลอง"),
     patience: int = typer.Option(50, help="จำนวน epoch รอ improvement ก่อน early stop"),
+    lr0: float = typer.Option(0.01, help="ค่า learning rate เริ่มต้น"),
+    lrf: float = typer.Option(0.01, help="อัตราดรอปของ learning rate (final multiplier)"),
+    weight_decay: float = typer.Option(0.0005, help="ค่า weight decay"),
+    optimizer: str = typer.Option("auto", help="ตัวเลือก optimizer เช่น auto, SGD, Adam, AdamW"),
     fraction: float = typer.Option(1.0, min=0.05, max=1.0, help="สัดส่วนของข้อมูล train/val ที่จะใช้ (0-1)"),
     seed: Optional[int] = typer.Option(None, help="ค่า seed สำหรับ reproducibility"),
     metrics_dir: Path = typer.Option(
@@ -66,7 +70,7 @@ def train(
         seed = 0
 
     console.log("เริ่มการเทรนแบบเต็ม")
-    results = yolo_model.train(
+    train_kwargs = dict(
         data=str(data_config),
         epochs=epochs,
         batch=batch,
@@ -79,7 +83,13 @@ def train(
         save=True,
         exist_ok=True,
         seed=seed,
+        lr0=lr0,
+        lrf=lrf,
+        weight_decay=weight_decay,
+        optimizer=optimizer,
     )
+
+    results = yolo_model.train(**train_kwargs)
     console.log("จบการเทรน")
     trainer = getattr(yolo_model, "trainer", None)
     run_dir = Path(trainer.save_dir) if trainer and getattr(trainer, "save_dir", None) else project_dir / name

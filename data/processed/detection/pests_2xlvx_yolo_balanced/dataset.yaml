@@ -1,4 +1,4 @@
-path: D:\AI_FInal_Project\data\processed\detection\pests_2xlvx_yolo
+path: D:\AI_FInal_Project\data\processed\detection\pests_2xlvx_yolo_balanced
 train: train/images
 val: val/images
 test: test/images
